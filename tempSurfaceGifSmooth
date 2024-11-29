@@ -1,0 +1,81 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from PIL import Image
+
+# City coordinates (latitude, longitude)
+cities = {
+    "San Francisco": (37.7749, -122.4194),
+    "Pleasanton": (37.6624, -121.8747),
+    "Livermore": (37.6819, -121.7680),
+    "Dublin": (37.7022, -121.9358),
+    "San Ramon": (37.7799, -121.9780),
+    "Fremont": (37.5483, -121.9886),
+    "San Jose": (37.3382, -121.8863),
+    "Walnut Creek": (37.9101, -122.0652),
+    "Palo Alto": (37.4419, -122.1430)
+}
+
+# Temperatures for four days
+temperatures = [
+    [55, 57, 57, 57, 55, 58, 58, 55, 57],  # Day 1
+    [56, 56, 56, 56, 56, 57, 57, 57, 57],  # Day 2
+    [55, 56, 55, 56, 55, 57, 56, 55, 56],  # Day 3
+    [57, 57, 56, 57, 57, 58, 58, 56, 57],  # Day 4
+]
+
+# Extract coordinates and organize data
+latitudes = np.array([coord[0] for coord in cities.values()])
+longitudes = np.array([coord[1] for coord in cities.values()])
+coordinates = np.column_stack((latitudes, longitudes))
+
+# Create a meshgrid
+lat_grid, lon_grid = np.meshgrid(
+    np.linspace(latitudes.min(), latitudes.max(), 50),
+    np.linspace(longitudes.min(), longitudes.max(), 50)
+)
+
+# Function to interpolate temperatures
+def interpolate_temps(coords, temps, lat_grid, lon_grid):
+    from scipy.interpolate import griddata
+    grid_temps = griddata(coords, temps, (lat_grid, lon_grid), method='cubic')
+    return grid_temps
+
+# Prepare smooth temperature transitions
+num_frames_per_transition = 30  # Number of intermediate frames between days
+frames = []
+
+for i in range(len(temperatures) - 1):
+    temp_start = temperatures[i]
+    temp_end = temperatures[i + 1]
+    for t in np.linspace(0, 1, num_frames_per_transition):
+        interpolated_temp = (1 - t) * np.array(temp_start) + t * np.array(temp_end)
+        frames.append(interpolate_temps(coordinates, interpolated_temp, lat_grid, lon_grid))
+
+# Add the final day's frame
+frames.append(interpolate_temps(coordinates, temperatures[-1], lat_grid, lon_grid))
+
+# Create the animation as a GIF
+output_path = 'smooth_temperature_transition.gif'
+images = []
+
+for frame_data in frames:
+    fig = plt.figure(figsize=(10, 7))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot_surface(lat_grid, lon_grid, frame_data, cmap='coolwarm', edgecolor='k', alpha=0.7)
+    ax.set_title("Smooth Temperature Transition")
+    ax.set_xlabel("Latitude")
+    ax.set_ylabel("Longitude")
+    ax.set_zlabel("Temperature (°F)")
+
+    # Save each frame as an image
+    plt.tight_layout()
+    frame_path = f'frame_temp.png'
+    plt.savefig(frame_path)
+    plt.close(fig)
+    images.append(Image.open(frame_path))
+
+# Save images as an animated GIF
+images[0].save(output_path, save_all=True, append_images=images[1:], duration=100, loop=0)
+
+print(f"Smooth transition GIF saved as {output_path}")
