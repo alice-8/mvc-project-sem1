@@ -69,7 +69,7 @@ def update(frame):
 ani = FuncAnimation(fig, update, frames=len(temperature_grids), interval=1000)
 
 # Save as GIF
-output_path = "/mnt/data/temperature_distribution_animation.gif"
+output_path = "/Users/alicesu/Downloads/temperature_distribution_animation.gif"
 ani.save(output_path, writer="imagemagick", fps=1)
 
 output_path
